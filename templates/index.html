@@ -107,7 +107,7 @@
                                     return d.y
                                 })
                                 .on("mouseover", function(d){
-                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tags:"+d.arxiv_primary_category.term)
+                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tag:"+d.arxiv_primary_category.term)
                                     .style("left", (d3.event.pageX) + "px")
                                     .style("top", (d3.event.pageY + 20) + "px")
                                     .style("opacity",1.0);
@@ -202,7 +202,7 @@
                                     return d.y
                                 })
                                 .on("mouseover", function(d){
-                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tags:"+d.arxiv_primary_category.term)
+                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tag:"+d.arxiv_primary_category.term)
                                     .style("left", (d3.event.pageX) + "px")
                                     .style("top", (d3.event.pageY + 20) + "px")
                                     .style("opacity",1.0);
