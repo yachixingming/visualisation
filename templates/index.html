@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<title>Visual engine</title>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+<!--<svg width="960" height="960" font-family="sans-serif" font-size="14" text-anchor="middle"></svg>-->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<script>
+    function add() {
+        //get input value
+        var inputValue = $(".form-control").val();
+        // trim the value
+        inputValue = inputValue.trim();
+        //clear input
+        $(".form-control").val('');
+
+        $.ajax({
+            url: '/search',
+            type: 'post',
+            dataType: 'jsonp',
+            data: {
+                value: inputValue
+            },
+            beforeSend: function () {
+                $('.response-data').html(`<img id="load" src="{{url_for('static', filename='img/loading.gif')}}" />`);
+            },
+            success: function (response) {
+                if (response.readyState === 4) {
+                    $('#load').remove();
+                    var responseData = response.responseText;
+                    //
+                    responseData = eval(responseData);
+                    //if the value of the reponse is null
+                    if (responseData.length === 0) {
+                        var noResultText = `<p class="no-result">Sorry, Server returned no data</p>`;
+                        $('.response-data').html(noResultText);
+                    } else {
+                        console.log(responseData)
+                        // all author and their papernum
+                        var authorObj = {};
+                        responseData.forEach(item => {
+                            item.authors.forEach(element => {
+                                if(!(element in authorObj)){
+                                    authorObj[element]  = 1
+                                }else{
+                                    authorObj[element] += 1
+                                }
+                            })
+                        })
+                        console.log(authorObj)
+                        // count each paper author papersum
+                        colorArr = []
+                        responseData.forEach(item =>{
+                            let paperSum = 0;
+                            item.authors.forEach(element =>{
+                                if(element in authorObj){
+                                    paperSum += authorObj[element];
+                                }
+                            })
+                            item.papersum = paperSum;
+                            item.color = item["arxiv_primary_category"].term;
+                            colorArr.push(item["arxiv_primary_category"].term);
+                        })
+                        console.log(responseData);
+
+                        // draw svg
+                        var tooltip = d3.select("body")
+                        .append("div")
+                        .attr("class","tooltip")
+                        .style("opacity",0.0);
+
+
+                        var weight = 900, height = 900;
+                        var simulation = d3.forceSimulation(responseData)
+                            .force('charge', d3.forceManyBody().strength(-150))
+                            .force('center', d3.forceCenter(weight / 2, height / 2))
+                            .force('collision', d3.forceCollide().radius(function (d) {
+                                return d.papersum
+                            }))
+                            .on('tick', ticked);
+
+                        var colorScale = d3.scaleOrdinal()
+                                           .domain(colorArr)
+                                           .range(d3.schemeCategory20);
+
+                        function ticked() {
+                            var u = d3.select('svg')
+                                .selectAll('circle')
+                                .data(responseData)
+                                .enter()
+                                .append('circle')
+                                .attr('r', function (d) {
+                                    return d.papersum;
+                                })
+                                .style("fill", function (d) {
+                                    return colorScale(d.color);
+                                })
+                                //    .merge(u)
+                                .attr('cx', function (d) {
+                                    return d.x
+                                })
+                                .attr('cy', function (d) {
+                                    return d.y
+                                })
+                                .on("mouseover", function(d){
+                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tags:"+d.arxiv_primary_category.term)
+                                    .style("left", (d3.event.pageX) + "px")
+                                    .style("top", (d3.event.pageY + 20) + "px")
+                                    .style("opacity",1.0);
+                                })
+                                .on("mouseout",function(d) {
+
+
+                                    tooltip.style("opacity", 0.0);
+                                })
+
+                        }
+                    }
+                }
+
+            },
+            error: function (response) {
+                if (response.readyState === 4) {
+                    $('#load').remove();
+                    var responseData = response.responseText;
+                    //
+                    responseData = eval(responseData);
+                    //
+                    if (responseData.length === 0) {
+                        var noResultText = `<p class="no-result">Sorry, Server returned no data</p>`;
+                        $('.response-data').html(noResultText);
+                    } else {
+                        console.log(responseData)
+                        // all author and their papernum
+                        var authorObj = {};
+                        responseData.forEach(item => {
+                            item.authors.forEach(element => {
+                                if(!(element in authorObj)){
+                                    authorObj[element]  = 1
+                                }else{
+                                    authorObj[element] += 1
+                                }
+                            })
+                        })
+                        console.log(authorObj)
+                        // count each paper author papersum
+                        colorArr = []
+                        responseData.forEach(item =>{
+                            let paperSum = 0;
+                            item.authors.forEach(element =>{
+                                if(element in authorObj){
+                                    paperSum += authorObj[element];
+                                }
+                            })
+                            item.papersum = paperSum;
+                            item.color = item["arxiv_primary_category"].term; //this paper is colored as 'csML' , for example
+                            colorArr.push(item["arxiv_primary_category"].term);
+                        })
+                        console.log(responseData);
+
+                        // draw svg
+                        var tooltip = d3.select("body")
+                        .append("div")
+                        .attr("class","tooltip")
+                        .style("opacity",0.0);
+
+
+                        var weight = 900, height = 900;
+                        var simulation = d3.forceSimulation(responseData)
+                            .force('charge', d3.forceManyBody().strength(-150))
+                            .force('center', d3.forceCenter(weight / 2, height / 2))
+                            .force('collision', d3.forceCollide().radius(function (d) {
+                                return d.papersum
+                            }))
+                            .on('tick', ticked);
+
+                        var colorScale = d3.scaleOrdinal()
+                                           .domain(colorArr)
+                                           .range(d3.schemeCategory20);
+
+                        function ticked() {
+                            var u = d3.select('svg')
+                                .selectAll('circle')
+                                .data(responseData)
+                                .enter()
+                                .append('circle')
+                                .attr('r', function (d) {
+                                    return d.papersum;
+                                })
+                                .style("fill", function (d) {
+                                    return colorScale(d.color);
+                                })
+                                //    .merge(u)
+                                .attr('cx', function (d) {
+                                    return d.x
+                                })
+                                .attr('cy', function (d) {
+                                    return d.y
+                                })
+                                .on("mouseover", function(d){
+                                    tooltip.html("title:" + d.title + "<br/><br/>" +"authors:"+d.authors.join(',') + "<br/><br/>"+"updated:"+ d.updated +"<br/><br/>"+"tags:"+d.arxiv_primary_category.term)
+                                    .style("left", (d3.event.pageX) + "px")
+                                    .style("top", (d3.event.pageY + 20) + "px")
+                                    .style("opacity",1.0);
+                                })
+                                .on("mouseout",function(d) {
+
+
+                                    tooltip.style("opacity", 0.0);
+                                })
+
+                        }
+                    }
+                }
+
+            },
+        })
+    }
+
+</script>
+<style>
+    body{
+        text-align: center;
+    }
+    .container {
+        margin-top: 70px;
+    }
+
+    .title {
+        text-align: center;
+    }
+
+    .box {
+        width: 500px;
+        margin: auto;
+    }
+
+    .middle {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .response-data {
+        text-align: center;
+    }
+
+    .no-result {
+        width: 500px;
+        font-size: 20px;
+        /* font-weight: 500; */
+        text-align: center;
+        margin: 0 auto;
+        color: #ccc;
+    }
+
+    img#load {
+        width: 300px;
+    }
+
+    button.btn-default.btn-monthly-analysis {
+        background-color: #cce5ff;
+        position:fixed;
+        top:10px;
+        right:10px;
+
+    }
+
+    a:hover {
+        text-decoration-line: none;
+    }
+    svg{
+
+    }
+    circle{
+        cursor: pointer;
+    }
+
+    .tooltip {
+        padding-left: 10px;
+        position: absolute;
+        width: 120;
+        height: auto;
+        font-family: simsun;
+        font-size: 14px;
+        text-align: left;
+        border-style: solid;
+        border-width: 1px;
+        background-color: white;
+        border-radius: 5px;
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <div class="middle">
+        <div class="title">
+            <h2>Visualisation tool</h2>
+        </div>
+        <div class="box">
+            <div class="input-group">
+                <input type="search" name="query" class="form-control" placeholder="Input some keywords..."/>
+                <div class="input-group-btn">
+                    <button class="btn btn-default" type="submit" onclick="add()"><i
+                            class="glyphicon glyphicon-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-default btn-monthly-analysis"><a href="/monthly/analysis" target="_blank">monthly searching
+            analysis</a></button>
+        <div class="response-data">
+
+        </div>
+    </div>
+</div>
+<svg width="960" height="960" font-family="sans-serif" font-size="14" text-anchor="middle"></svg>
+</body>
+
+</html>
